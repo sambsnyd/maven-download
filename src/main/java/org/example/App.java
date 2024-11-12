@@ -7,10 +7,16 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.maven.MavenDownloadingException;
 import org.openrewrite.maven.MavenExecutionContextView;
 import org.openrewrite.maven.MavenSettings;
+import org.openrewrite.maven.cache.InMemoryMavenPomCache;
+import org.openrewrite.maven.cache.LocalMavenArtifactCache;
+import org.openrewrite.maven.cache.MavenArtifactCache;
+import org.openrewrite.maven.cache.ReadOnlyLocalMavenArtifactCache;
 import org.openrewrite.maven.internal.MavenPomDownloader;
-import org.openrewrite.maven.tree.GroupArtifactVersion;
-import org.openrewrite.maven.tree.MavenRepository;
-import org.openrewrite.maven.tree.Pom;
+import org.openrewrite.maven.tree.*;
+import org.openrewrite.maven.utilities.MavenArtifactDownloader;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class App {
 
@@ -47,7 +53,35 @@ public class App {
         MavenPomDownloader mpd = new MavenPomDownloader(ctx);
 
         System.out.println("Downloading pom for " + gav);
-        Pom download = mpd.download(gav, null, null, ctx.getRepositories());
-        System.out.println("Downloaded " + download.getGav() + " from " + (download.getRepository() == null ? "unknown uri" : download.getRepository().getUri()));
+        try {
+            Pom pom = mpd.download(gav, null, null, ctx.getRepositories());
+            System.out.println("Downloaded " + pom.getGav() + " from " + (pom.getRepository() == null ? "unknown uri" : pom.getRepository().getUri()));
+        } catch (MavenDownloadingException e) {
+            System.out.println("Failed to download pom for " + gav);
+        }
+        System.out.println("Downloading jar for " + gav);
+        MavenArtifactCache artifactCache = new LocalMavenArtifactCache(Paths.get(System.getProperty("user.home"), ".rewrite", "download-debug"));
+        MavenArtifactDownloader mad = new MavenArtifactDownloader(artifactCache, settings, it -> {
+            if(it instanceof RuntimeException) {
+                throw (RuntimeException) it;
+            }
+            throw new RuntimeException(it);
+        });
+        for (MavenRepository repository : ctx.getRepositories()) {
+            try {
+                System.out.println("Attempting to download from " + repository.getUri());
+                ResolvedDependency build = ResolvedDependency.builder()
+                        .gav(new ResolvedGroupArtifactVersion(repository.getUri(), gav.getGroupId(), gav.getArtifactId(), gav.getVersion(), null))
+                        .repository(repository)
+                        .requested(Dependency.builder()
+                                .gav(gav)
+                                .build())
+                        .build();
+                Path path = mad.downloadArtifact(build);
+                System.out.println("Downloaded " + path);
+            } catch (Exception e) {
+                System.out.println("Failed to download from " + repository.getUri());
+            }
+        }
     }
 }
