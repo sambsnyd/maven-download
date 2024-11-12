@@ -3,7 +3,6 @@
  */
 package org.example;
 
-import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.maven.MavenDownloadingException;
 import org.openrewrite.maven.MavenExecutionContextView;
@@ -12,8 +11,6 @@ import org.openrewrite.maven.internal.MavenPomDownloader;
 import org.openrewrite.maven.tree.GroupArtifactVersion;
 import org.openrewrite.maven.tree.MavenRepository;
 import org.openrewrite.maven.tree.Pom;
-
-import java.util.Collections;
 
 public class App {
 
@@ -29,7 +26,18 @@ public class App {
         MavenSettings settings = MavenSettings.readMavenSettingsFromDisk(ctx);
         if (settings == null) {
             System.out.println("No Maven settings found on disk");
+        } else {
+            System.out.println("Loaded Maven settings");
+            if(settings.getActiveProfiles() == null) {
+                System.out.println("No active profiles");
+            } else {
+                System.out.println(settings.getActiveProfiles().getActiveProfiles().size() + " active profiles:");
+                for (String activeProfile : settings.getActiveProfiles().getActiveProfiles()) {
+                    System.out.println("    " + activeProfile);
+                }
+            }
         }
+
         ctx.setMavenSettings(settings);
         System.out.println(ctx.getRepositories().size() + " repositories in use");
         for (MavenRepository repository : ctx.getRepositories()) {
