@@ -7,10 +7,8 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.maven.MavenDownloadingException;
 import org.openrewrite.maven.MavenExecutionContextView;
 import org.openrewrite.maven.MavenSettings;
-import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.LocalMavenArtifactCache;
 import org.openrewrite.maven.cache.MavenArtifactCache;
-import org.openrewrite.maven.cache.ReadOnlyLocalMavenArtifactCache;
 import org.openrewrite.maven.internal.MavenPomDownloader;
 import org.openrewrite.maven.tree.*;
 import org.openrewrite.maven.utilities.MavenArtifactDownloader;
@@ -20,7 +18,7 @@ import java.nio.file.Paths;
 
 public class App {
 
-    public static void main(String[] args) throws MavenDownloadingException {
+    public static void main(String[] args) {
         GroupArtifactVersion gav;
         if (args.length > 0) {
             String[] parts = args[0].split(":");
